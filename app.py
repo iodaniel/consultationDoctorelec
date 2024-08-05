@@ -1,3 +1,4 @@
+# app.py
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -13,7 +14,6 @@ import os
 load_dotenv()
 
 # Inicializar extensiones
-db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
 
@@ -40,4 +40,3 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
     app.run(debug=True)
-

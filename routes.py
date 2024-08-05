@@ -1,7 +1,11 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from models import db, Consultation
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
+
+# Configuración de URLs para otros microservicios
+PROFILE_SERVICE_URL = "http://127.0.0.1:5003/api"
+PATIENT_SERVICE_URL = "http://127.0.0.1:5004/api"
 
 # Configuración de logging
 logging.basicConfig(level=logging.DEBUG)
@@ -14,7 +18,10 @@ consultation_bp = Blueprint('consultation', __name__)
 def create_consultation():
     data = request.get_json()
     doctor_id = data.get('doctor_id')
-    patient_id = data.get('patient_id')
+    patient_id = get_jwt_identity()  # Obtener el ID del paciente autenticado
+       # Debug: Imprimir los IDs para verificar
+    current_app.logger.debug(f"Doctor ID from request: {doctor_id}")
+    current_app.logger.debug(f"Patient ID from JWT: {patient_id}")
     status = data.get('status', 'scheduled')
     notes = data.get('notes')
     consultation_type = data.get('consultation_type', 'general')
@@ -84,3 +91,49 @@ def consultation_to_dict(self):
     }
 
 Consultation.to_dict = consultation_to_dict
+
+@consultation_bp.route('/logs', methods=['GET', 'OPTIONS'])
+@jwt_required()
+def get_logs():
+    if request.method == 'OPTIONS':
+        return '', 204
+
+    # Obtener el ID del usuario autenticado
+    patient_id = get_jwt_identity()
+    # current_app.logger.debug(f"Fetching logs for patient ID: {patient_id}")
+    # Consultar las consultas del paciente
+    consultations = Consultation.query.filter_by(patient_id=patient_id).all()
+
+    # Convertir las consultas a un formato JSON
+    consultations_data = [consultation.to_dict() for consultation in consultations]
+    # current_app.logger.debug(f"Consultations for patient {patient_id}: {consultations_data}")
+    for consultation in consultations_data:
+        current_app.logger.debug(f"Consultation ID: {consultation['id']} - Doctor ID: {consultation.get('doctor_id')} - Patient ID: {consultation.get('patient_id')}")
+
+    
+    return jsonify(consultations_data), 200
+
+
+
+@consultation_bp.route('/logs-doctor', methods=['GET', 'OPTIONS'])
+@jwt_required()
+def get_logs_doctor():
+    if request.method == 'OPTIONS':
+        return '', 204
+
+    # Obtener el ID del doctor autenticado
+    doctor_id = get_jwt_identity()
+    current_app.logger.debug(f"Fetching logs for doctor ID: {doctor_id}")
+    # Consultar las consultas del doctor
+    consultations = Consultation.query.filter_by(doctor_id=doctor_id).all()
+    #Convertir las consultas a un formato JSON
+    consultations_data = [consultation.to_dict() for consultation in consultations]
+    current_app.logger.debug(f"Consultations for doctor {doctor_id}: {consultations_data}")
+
+
+    for consultation in consultations_data:
+        current_app.logger.debug(f"Consultation ID: {consultation['id']} - Patient ID: {consultation.get('patient_id')}")
+
+
+    
+    return jsonify(consultations_data), 200
