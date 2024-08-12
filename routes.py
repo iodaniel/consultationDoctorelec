@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify, current_app
 from models import db, Consultation
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from collections import deque
+from threading import Timer
 import logging
 
 # Configuración de URLs para otros microservicios
@@ -12,6 +14,15 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 consultation_bp = Blueprint('consultation', __name__)
+
+# Cola FIFO para manejar las consultas
+consultation_queue = deque()
+
+# Tiempo de espera para confirmación (en segundos)
+CONFIRMATION_TIMEOUT = 180
+
+
+
 
 @consultation_bp.route('/consultations', methods=['POST'])
 @jwt_required()
