@@ -4,6 +4,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from collections import deque
 from threading import Timer
 import logging
+from flask_mail import Message
+from app import mail
 
 # Configuración de URLs para otros microservicios
 PROFILE_SERVICE_URL = "http://127.0.0.1:5003/api"
@@ -33,6 +35,7 @@ def create_consultation():
        # Debug: Imprimir los IDs para verificar
     current_app.logger.debug(f"Doctor ID from request: {doctor_id}")
     current_app.logger.debug(f"Patient ID from JWT: {patient_id}")
+
     status = data.get('status', 'scheduled')
     notes = data.get('notes')
     consultation_type = data.get('consultation_type', 'general')
@@ -50,7 +53,50 @@ def create_consultation():
     db.session.add(new_consultation)
     db.session.commit()
 
+    doctor_info = {
+        'email': data.get('doctor_email'),
+        'first_name': data.get('doctor_first_name'),
+        'last_name': data.get('doctor_last_name')
+    }
+        
+    patient_info = {
+            'email': data.get('patient_email'),
+            'first_name': data.get('patient_first_name'),
+            'last_name': data.get('patient_last_name')
+    }
+
+    send_consultation_email(doctor_info, patient_info, new_consultation.id)
+
     return jsonify(new_consultation.to_dict()), 201
+    
+
+
+def send_consultation_email(doctor_info, patient_info, consultation_id):
+    # Crear el mensaje para el doctor
+    msg_doctor = Message("Nueva Consulta Programada", recipients=[doctor_info['email']])
+    msg_doctor.body = (
+        f"Hola Dr. {doctor_info['first_name']} {doctor_info['last_name']},\n\n"
+        f"Tienes una nueva consulta programada con el paciente {patient_info['first_name']} {patient_info['last_name']}.\n"
+        f"ID de la consulta: {consultation_id}."
+    )
+
+    # Crear el mensaje para el paciente
+    msg_patient = Message("Consulta Creada", recipients=[patient_info['email']])
+    msg_patient.body = (
+        f"Hola {patient_info['first_name']},\n\n"
+        f"Tu consulta con el Dr. {doctor_info['first_name']} {doctor_info['last_name']} ha sido creada.\n"
+        f"ID de la consulta: {consultation_id}."
+    )
+
+    # Enviar los correos electrónicos
+    with current_app.app_context():
+        try:
+            mail.send(msg_doctor)
+            mail.send(msg_patient)
+            current_app.logger.debug(f"Emails sent to doctor {doctor_info['email']} and patient {patient_info['email']} for consultation ID: {consultation_id}")
+        except Exception as e:
+            current_app.logger.error(f"Failed to send email: {str(e)}")
+
 
 @consultation_bp.route('/consultations/<string:consultation_id>', methods=['GET'])
 @jwt_required()

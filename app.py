@@ -9,14 +9,14 @@ from dotenv import load_dotenv
 from routes import consultation_bp
 from models import db, Consultation
 import os
-
+from flask_mail import Mail 
 # Cargar las variables de entorno del archivo .env
 load_dotenv()
 
 # Inicializar extensiones
 migrate = Migrate()
 jwt = JWTManager()
-
+mail = Mail()
 # Crear la aplicación
 def create_app():
     app = Flask(__name__)
@@ -29,6 +29,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    mail.init_app(app) 
 
     app.register_blueprint(consultation_bp, url_prefix='/api')
 
