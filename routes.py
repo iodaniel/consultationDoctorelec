@@ -132,21 +132,16 @@ def create_consultation():
 
     # Extraer correo electrónico del JWT
     patient_email = jwt_claims.get('email', None)
-    patient_firstName = jwt_claims.get('first_name', None)
-    patient_lastName = jwt_claims.get('last_name', None)
     patient_username = jwt_claims.get('username', None)
-    doctor_email = data.get('email', None)
-    doctor_firstName = data.get('first_name', None)
-    doctor_lastName = data.get('doctor.last_name', None)
+    doctor_email = jwt_claims.get('email', None)
+    doctor_username = jwt_claims.get('username', None)
 
     
     # Debug: Imprimir los IDs para verificar
-    # current_app.logger.debug(f"Patient Name : { patient_firstName} {patient_lastName}")
-    # current_app.logger.debug(f"Doctor Name : { doctor_firstName} {doctor_lastName}")
     current_app.logger.debug(f"Doctor ID from request: {doctor_id}")
     current_app.logger.debug(f"Patient ID from JWT: {patient_id}")
     current_app.logger.debug(f"Patient Email from JWT: {patient_email}")
-    current_app.logger.debug(f"Doctor Email from data get: {doctor_email}")
+    current_app.logger.debug(f"Doctor Email from JWT: {doctor_email}")
     
 
     status = data.get('status', 'scheduled')
@@ -168,15 +163,13 @@ def create_consultation():
 
     doctor_info = {
         'email': doctor_email,
-        'first_name': doctor_firstName,
-        'last_name': doctor_lastName
+        'user_name': doctor_username
         
     }
         
     patient_info = {
             'email': patient_email,
-            'first_name': patient_firstName,
-            'last_name': patient_firstName
+            'user_name':  doctor_username
            
     }
 
@@ -184,6 +177,7 @@ def create_consultation():
 
     return jsonify(new_consultation.to_dict()), 201
     
+
 
 def send_consultation_email(doctor_info, patient_info, consultation_id):
     # Crear el mensaje para el doctor
@@ -197,16 +191,16 @@ def send_consultation_email(doctor_info, patient_info, consultation_id):
     
     msg_doctor = Message("Nueva Consulta Programada", recipients=[doctor_info['email']])
     msg_doctor.body = (
-        f"Hola Dr. {doctor_info['first_name']} {doctor_info['last_name']},\n\n"
-        f"Tienes una nueva consulta programada con el paciente {patient_info['first_name']} {patient_info['last_name']}.\n"
+        f"Hola Dr. {doctor_info['user_name']},\n\n"
+        f"Tienes una nueva consulta programada con el paciente {patient_info['user_name']}.\n"
         f"ID de la consulta: {consultation_id}."
     )
 
     # Crear el mensaje para el paciente
     msg_patient = Message("Consulta Creada", recipients=[patient_info['email']])
     msg_patient.body = (
-        f"Hola {patient_info['first_name']} {patient_info['last_name']},\n\n"
-        f"Tu consulta con el Dr. {doctor_info['first_name']} {doctor_info['last_name']} ha sido creada.\n"
+        f"Hola {patient_info['user_name']},\n\n"
+        f"Tu consulta con el Dr. {doctor_info['user_name']} ha sido creada.\n"
         f"ID de la consulta: {consultation_id}."
     )
 
@@ -222,44 +216,6 @@ def send_consultation_email(doctor_info, patient_info, consultation_id):
             current_app.logger.debug(f"Emails sent to doctor {doctor_info['email']} and patient {patient_info['email']} for consultation ID: {consultation_id}")
         except Exception as e:
             current_app.logger.error(f"Failed to send email: {str(e)}")
-
-# def send_consultation_email(doctor_info, patient_info, consultation_id):
-#     # Crear el mensaje para el doctor
-#     mail = current_app.extensions.get('mail')
-    
-#     if not mail:
-#         current_app.logger.error("Failed to send email: Mail extension is not initialized.")
-#         return
-
-#     current_app.logger.debug(f"Preparing to send email to Doctor: {doctor_info['email']} and Patient: {patient_info['email']}")
-    
-#     msg_doctor = Message("Nueva Consulta Programada", recipients=[doctor_info['email']])
-#     msg_doctor.body = (
-#         f"Hola Dr. {doctor_info['user_name']},\n\n"
-#         f"Tienes una nueva consulta programada con el paciente {patient_info['user_name']}.\n"
-#         f"ID de la consulta: {consultation_id}."
-#     )
-
-#     # Crear el mensaje para el paciente
-#     msg_patient = Message("Consulta Creada", recipients=[patient_info['email']])
-#     msg_patient.body = (
-#         f"Hola {patient_info['user_name']},\n\n"
-#         f"Tu consulta con el Dr. {doctor_info['user_name']} ha sido creada.\n"
-#         f"ID de la consulta: {consultation_id}."
-#     )
-
-#     # Enviar los correos electrónicos
-#     with current_app.app_context():
-#         try:
-#             current_app.logger.debug("Sending email to doctor...")
-#             mail.send(msg_doctor)
-#             current_app.logger.debug("Email to doctor sent successfully.")
-#             current_app.logger.debug("Sending email to patient...")
-#             mail.send(msg_patient)
-#             current_app.logger.debug("Email to patient sent successfully.")
-#             current_app.logger.debug(f"Emails sent to doctor {doctor_info['email']} and patient {patient_info['email']} for consultation ID: {consultation_id}")
-#         except Exception as e:
-#             current_app.logger.error(f"Failed to send email: {str(e)}")
 
 
 @consultation_bp.route('/consultations/<string:consultation_id>', methods=['GET'])
