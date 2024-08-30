@@ -23,7 +23,9 @@ def create_app():
     app.config.from_object(Config)
 
     # Configurar CORS
-    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]}})
+    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001"], "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]}})
+
+    # CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]}})
 
     #CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
 

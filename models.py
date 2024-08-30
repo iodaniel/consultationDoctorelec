@@ -27,3 +27,26 @@ class Consultation(db.Model):
             'created_at': self.created_at,
             'updated_at': self.updated_at
         }
+
+        
+class Rating(db.Model):
+    __tablename__ = 'ratings'
+    id = db.Column(db.Integer, primary_key=True)
+    consultation_id = db.Column(db.String(36), db.ForeignKey('consultation.id'), nullable=False)
+    patient_username = db.Column(db.String(100), nullable=False)
+    doctor_username = db.Column(db.String(100), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    testimonial = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'consultation_id': self.consultation_id,
+            'patient_username': self.patient_username,
+            'doctor_username': self.doctor_username,
+            'rating': self.rating,
+            'testimonial': self.testimonial,
+            'created_at': self.created_at.isoformat(),
+        }
+
